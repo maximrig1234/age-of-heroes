@@ -228,7 +228,7 @@ plugins:
     enabled: true
     options:
       links:
-        Репозиторий: https://github.com/maximrig1234/near-the-mountain-range-wiki
+        Репозиторий: https://github.com/maximrig1234/age-of-heroes
     layout:
       position: footer
       priority: 50
