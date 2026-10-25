@@ -1,0 +1,487 @@
+@use "./variables.scss" as *;
+
+// =====================================================================
+//  Мир Окологорья: «свиток на неподвижном фоне»
+//  Цвета и шрифты задаются в quartz.config.yaml (theme -> colors/typography).
+//  Здесь только форма: фон, панель-свиток, цитаты, картинки, инфобокс.
+// =====================================================================
+
+// ---------------------------------------------------------------------
+// 1. Фон: небо и неподвижный пейзаж внизу экрана.
+//    Страница листается, фон остаётся на месте.
+//    Картинки лежат в quartz/static/theme/ (адрес без начального «/»,
+//    чтобы работало и на компьютере, и на GitHub Pages).
+//    Тёмная тема пока просто затемнённый пейзаж; глаза будут на шаге 4.
+// ---------------------------------------------------------------------
+:root {
+  --panel: color-mix(in srgb, var(--light) 93%, transparent);
+  --panel-edge: color-mix(in srgb, var(--lightgray) 85%, var(--gray));
+}
+
+:root[saved-theme="light"] {
+  --sky: linear-gradient(#5899d8, #b6d1e8);
+  --landscape-filter: none;
+  --frame-filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.35));
+}
+
+:root[saved-theme="dark"] {
+  --sky: linear-gradient(#070b24, #2b2456);
+  --landscape-filter: brightness(0.32) saturate(0.6) hue-rotate(205deg);
+  --frame-filter: brightness(0.42) saturate(0.75) drop-shadow(0 10px 16px rgba(0, 0, 0, 0.5));
+}
+
+body {
+  background: var(--sky);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(100vw * 821 / 1916);
+  z-index: -1;
+  pointer-events: none;
+  background: url("static/theme/bg-landscape.jpg") center / 100% 100% no-repeat;
+  mask-image: linear-gradient(transparent, #000 16%);
+  filter: var(--landscape-filter);
+
+  // на узких «портретных» экранах картинка закрывает весь экран
+  @media (max-aspect-ratio: 5/4) {
+    height: 100%;
+    background-size: cover;
+    background-position: 30% bottom;
+    mask-image: none;
+  }
+}
+
+// ---------------------------------------------------------------------
+// 2. Рамки. Центральный блок: пергамент в каменной рамке с золотом.
+//    Боковые блоки: каждый на своём свитке.
+// ---------------------------------------------------------------------
+.center {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 46px 54px 56px;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border: 36px solid transparent;
+    border-image: url("static/theme/panel-frame.webp") 100 fill / 36px stretch;
+    filter: var(--frame-filter);
+  }
+
+  @media #{$mobile} {
+    padding: 36px 30px 44px;
+  }
+}
+
+// ---------------------------------------------------------------------
+// 3. Типографика
+// ---------------------------------------------------------------------
+article {
+  font-size: 1.12rem;
+  line-height: 1.75;
+
+  h1 {
+    font-size: 2.4rem;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+  }
+
+  h2 {
+    margin-top: 2.4rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--panel-edge);
+  }
+
+  h3,
+  h4 {
+    margin-top: 1.8rem;
+  }
+
+  // Ссылки: без цветной «таблетки», с пунктирным подчёркиванием
+  a.internal {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    border-bottom: 1px dotted currentColor;
+
+    &:hover {
+      background: var(--highlight);
+    }
+  }
+
+  // Цитаты по центру, курсивом, как эпиграфы в книгах
+  blockquote:not(.callout) {
+    border: none;
+    margin: 1.6rem 2rem;
+    padding: 0.4rem 1rem;
+    text-align: center;
+    font-style: italic;
+    color: var(--darkgray);
+
+    @media #{$mobile} {
+      margin: 1.2rem 0.4rem;
+    }
+  }
+
+  // Картинки в рамке
+  img:not(.emoji) {
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 3px;
+    padding: 4px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.page-title {
+  font-size: 1.7rem;
+  line-height: 1.2;
+}
+
+// ---------------------------------------------------------------------
+// 4. Инфобокс справа от текста, как на вики
+//    Работает, если в заметке он оформлен как > [!infobox]
+//    или как блок с классом infobox. Если у вас иначе, пришлите заметку.
+// ---------------------------------------------------------------------
+.callout[data-callout="infobox"],
+.infobox {
+  float: right;
+  clear: right;
+  width: min(21rem, 42%);
+  margin: 0.4rem 0 1.2rem 1.6rem;
+  padding: 0;
+  overflow: hidden;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  background: color-mix(in srgb, var(--light) 82%, var(--lightgray));
+  border: 1px solid var(--gray);
+  border-radius: 3px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+
+  .callout-title {
+    justify-content: center;
+    padding: 0.6rem 0.8rem;
+    background: #5e1824;
+    color: #f3e6c4;
+    font-family: var(--headerFont);
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .callout-icon {
+    display: none;
+  }
+
+  .callout-content {
+    padding: 0.5rem 0.8rem 0.8rem;
+  }
+
+  img {
+    display: block;
+    margin: 0.4rem auto;
+    max-width: 100%;
+  }
+
+  table {
+    width: 100%;
+    margin: 0.4rem 0;
+  }
+
+  td,
+  th {
+    padding: 0.25rem 0.4rem;
+    border-bottom: 1px solid var(--panel-edge);
+    vertical-align: top;
+  }
+
+  @media #{$mobile} {
+    float: none;
+    width: auto;
+    margin: 1rem 0;
+  }
+}
+
+// ---------------------------------------------------------------------
+// 5. Мелочи
+// ---------------------------------------------------------------------
+::selection {
+  background: var(--textHighlight);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray) transparent;
+}
+
+// Название инфобокса: светлый текст на бордовой шапке
+.callout[data-callout="infobox"] .callout-title,
+.callout[data-callout="infobox"] .callout-title * {
+  color: #f3e6c4 !important;
+}
+
+// ---------------------------------------------------------------------
+// 6. Рамка «Окологорье»: стена замка и меню сверху, три колонки ниже.
+//    Стена уезжает вверх при прокрутке, полоса меню остаётся.
+// ---------------------------------------------------------------------
+:root[saved-theme="light"] {
+  --stone: #8d8b86;
+  --wall-filter: none;
+}
+
+:root[saved-theme="dark"] {
+  --stone: #4a4944;
+  --wall-filter: brightness(0.5) saturate(0.7);
+}
+
+.page[data-frame="okologorye"] > #quartz-body {
+  display: block;
+  padding: 0;
+  margin: 0;
+}
+
+.okolo-wall,
+.okolo-nav,
+.okolo-cols {
+  box-sizing: border-box;
+  max-width: 1480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.okolo-wall {
+  position: relative;
+  height: 170px;
+  margin-top: 6px;
+  filter: var(--wall-filter);
+  background:
+    url("static/theme/castle-wall.webp") center bottom / auto 170px no-repeat,
+    url("static/theme/wall-tile.webp") left bottom / auto 58px repeat-x;
+
+  @media #{$mobile} {
+    height: 120px;
+    background-size:
+      auto 120px,
+      auto 41px;
+  }
+}
+
+.okolo-wall-title {
+  position: absolute;
+  left: 1.4rem;
+  bottom: 12px;
+  font-family: var(--headerFont);
+  font-size: 1.5rem;
+  color: #f3e6c4;
+  text-shadow: 0 2px 4px #000;
+
+  &:hover {
+    color: #fff;
+  }
+
+  @media #{$mobile} {
+    font-size: 1.1rem;
+    left: 0.8rem;
+    bottom: 8px;
+  }
+}
+
+.okolo-nav {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 7px 8px;
+  border-top: 2px solid #2b2a27;
+  border-bottom: 3px solid #2b2a27;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0 1px, transparent 1px 12px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 26px),
+    linear-gradient(var(--stone), color-mix(in srgb, var(--stone) 80%, #000));
+
+  @media #{$mobile} {
+    flex-wrap: wrap;
+  }
+}
+
+.okolo-menu {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+
+  @media #{$mobile} {
+    flex: 1 1 100%;
+    overflow-x: auto;
+  }
+
+  a {
+    flex: 1 1 0;
+    height: 44px;
+    padding: 0 4px;
+    white-space: nowrap;
+    text-align: center;
+    font: 700 15px/44px var(--headerFont), Georgia, serif;
+    color: #f1e2b0;
+    text-shadow: 0 1px 2px #000;
+    border-style: solid;
+    border-width: 0 24px;
+    border-image: url("static/theme/nav-button.webp") 0 70 fill / 0 24px stretch;
+
+    &:hover {
+      color: #fff6d8;
+      border-image-source: url("static/theme/nav-button-hover.webp");
+    }
+
+    &:active,
+    &.current {
+      color: #fff6d8;
+      border-image-source: url("static/theme/nav-button-active.webp");
+    }
+  }
+}
+
+// Поиск, переключатель темы, режим чтения: справа в полосе меню
+.okolo-tools {
+  flex: 0 0 auto;
+
+  header {
+    position: static;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .page-title {
+    display: none;
+  }
+
+  .search {
+    width: 13rem;
+  }
+}
+
+.okolo-cols {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+  margin-top: 18px;
+  margin-bottom: 40px;
+  padding: 0 1rem;
+
+  @media (max-width: 1199px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .page-header {
+    margin: 0;
+  }
+}
+
+// Боковые колонки: прилипают под полосой меню, у каждого блока своя рамка
+.page[data-frame="okologorye"] > #quartz-body .okolo-cols .sidebar.left,
+.page[data-frame="okologorye"] > #quartz-body .okolo-cols .sidebar.right {
+  position: sticky;
+  top: 4.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1.2rem;
+  box-sizing: border-box;
+  height: auto;
+  max-height: calc(100vh - 5.2rem);
+  overflow-y: auto;
+  padding: 0;
+  margin: 0;
+
+  @media (max-width: 1199px) {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 1199px) {
+  .okolo-cols .center {
+    order: 1;
+  }
+  .okolo-cols .right {
+    order: 2;
+  }
+  .okolo-cols .left {
+    order: 3;
+  }
+}
+
+// Оглавление на свитке
+.okolo-cols .sidebar .toc {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 4.2rem 2.6rem;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border-style: solid;
+    border-width: 60px 0;
+    border-image: url("static/theme/scroll-frame.webp") 85 0 fill / 60px 0 stretch;
+    filter: var(--frame-filter);
+  }
+}
+
+// Граф, обратные ссылки и прочие блоки: каменная рамка с золотом
+.okolo-cols .sidebar .graph,
+.okolo-cols .sidebar .backlinks,
+.okolo-cols .sidebar .recent-notes {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 36px 34px;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border: 28px solid transparent;
+    border-image: url("static/theme/panel-frame.webp") 100 fill / 28px stretch;
+    filter: var(--frame-filter);
+  }
+}

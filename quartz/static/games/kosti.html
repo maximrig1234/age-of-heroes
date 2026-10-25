@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Кости — Мир Окологорья</title>
+<style>
+:root{--gold:#d9b45a;--ink:#2a1d10;--parch:#ecdcb4;--die:#1b1b21;--pip:#f5efdc}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:Georgia,'Times New Roman',serif;color:#f1e2b0;
+  background:radial-gradient(ellipse at 50% 20%,#4a2d17 0,#26150a 60%,#150b05 100%);
+  display:flex;justify-content:center;padding:18px 12px 40px}
+main{width:100%;max-width:760px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;margin-bottom:10px}
+h1{margin:0;font-size:1.8rem;letter-spacing:.04em}
+a{color:var(--gold)}
+.table{border:3px solid var(--gold);border-radius:10px;padding:16px;
+  background:linear-gradient(#35200f,#2a1a0d);box-shadow:0 8px 24px rgba(0,0,0,.6)}
+.row{padding:10px 8px;border-radius:8px;background:rgba(0,0,0,.22);margin-bottom:12px}
+.who{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:1.05rem}
+.purse b{color:var(--gold)}
+.dice{display:flex;gap:10px;justify-content:center;min-height:74px;flex-wrap:wrap}
+.die{width:64px;height:64px;border-radius:12px;background:var(--die);border:2px solid #4a4a55;
+  display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:8px;cursor:default;
+  transition:transform .15s,box-shadow .15s,border-color .15s;user-select:none}
+.die i{display:block;width:100%;height:100%}
+.die i.on{background:var(--pip);border-radius:50%;transform:scale(.62)}
+.die.empty{opacity:.25}
+.die.pick{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 10px 12px rgba(0,0,0,.5);transform:translateY(-8px)}
+.die.you{cursor:pointer}
+.die.roll{animation:shake .12s linear infinite}
+@keyframes shake{0%{transform:rotate(-8deg) translateY(-3px)}50%{transform:rotate(8deg) translateY(2px)}100%{transform:rotate(-8deg) translateY(-3px)}}
+.hand{text-align:center;margin-top:8px;min-height:1.4em;color:var(--parch)}
+.msg{min-height:3.2em;text-align:center;padding:8px;margin:6px 0 12px;border-radius:8px;background:rgba(0,0,0,.28);line-height:1.4}
+.controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center}
+button{font:700 1rem Georgia,serif;color:#f1e2b0;background:#1c3a6b;border:2px solid var(--gold);border-radius:6px;padding:10px 18px;cursor:pointer}
+button:hover:not(:disabled){background:#27508f}
+button:disabled{opacity:.4;cursor:default}
+select{font:1rem Georgia,serif;padding:8px;border-radius:6px;border:2px solid var(--gold);background:#2a1a0d;color:#f1e2b0}
+details{margin-top:14px;color:var(--parch)}
+summary{cursor:pointer;color:var(--gold)}
+ul{margin:.5em 0;padding-left:1.2em;line-height:1.5}
+@media (max-width:520px){.die{width:52px;height:52px;padding:6px}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Кости</h1>
+    <a href="../../">← В Окологорье</a>
+  </header>
+  <div class="table">
+    <div class="row">
+      <div class="who"><span>Соперник из таверны</span><span class="purse">Монет: <b id="oc">100</b></span></div>
+      <div class="dice" id="od"></div>
+      <div class="hand" id="oh"></div>
+    </div>
+    <div class="msg" id="msg">Выберите ставку и бросайте кости.</div>
+    <div class="row">
+      <div class="who"><span>Вы</span><span class="purse">Монет: <b id="yc">100</b></span></div>
+      <div class="dice" id="yd"></div>
+      <div class="hand" id="yh"></div>
+    </div>
+    <div class="controls">
+      <label>Ставка: <select id="bet"><option>5</option><option selected>10</option><option>25</option></select></label>
+      <button id="go">Бросить кости</button>
+      <button id="re" disabled>Перебросить выбранные</button>
+      <button id="keep" disabled>Оставить</button>
+    </div>
+  </div>
+  <details>
+    <summary>Правила</summary>
+    <ul>
+      <li>У каждого по пять костей. Перед началом оба вносят ставку, победитель забирает обе.</li>
+      <li>После первого броска можно дважды перебросить любые кости: нажмите на кости, которые хотите перебросить, затем «Перебросить выбранные». «Оставить» заканчивает ваш ход.</li>
+      <li>Старшинство комбинаций, от слабой к сильной: пара, две пары, тройка, малый стрит (1-5), большой стрит (2-6), фул-хаус, каре, покер (пять одинаковых).</li>
+      <li>Если комбинации одинаковые, выигрывает та, где кости старше. Полное равенство это ничья, ставки возвращаются.</li>
+    </ul>
+  </details>
+</main>
+<script>
+var HAND_NAMES = ["Ничего", "Пара", "Две пары", "Тройка", "Малый стрит", "Большой стрит", "Фул-хаус", "Каре", "Покер (пять одинаковых)"];
+function evaluate(dice) {
+  var cnt = [0, 0, 0, 0, 0, 0, 0];
+  dice.forEach(function (v) { cnt[v]++; });
+  var groups = [];
+  for (var v = 6; v >= 1; v--) if (cnt[v]) groups.push({ v: v, c: cnt[v] });
+  groups.sort(function (a, b) { return b.c - a.c || b.v - a.v; });
+  var shape = groups.map(function (g) { return g.c; }).join("");
+  var tie = [];
+  groups.forEach(function (g) { for (var i = 0; i < g.c; i++) tie.push(g.v); });
+  var rank;
+  if (shape === "5") rank = 8;
+  else if (shape === "41") rank = 7;
+  else if (shape === "32") rank = 6;
+  else if (shape === "11111" && cnt[2] && cnt[3] && cnt[4] && cnt[5] && (cnt[1] || cnt[6])) rank = cnt[6] ? 5 : 4;
+  else if (shape === "311") rank = 3;
+  else if (shape === "221") rank = 2;
+  else if (shape === "2111") rank = 1;
+  else rank = 0;
+  if (rank === 4 || rank === 5) tie = [];
+  return { rank: rank, name: HAND_NAMES[rank], tie: tie };
+}
+function compare(a, b) {
+  if (a.rank !== b.rank) return a.rank > b.rank ? 1 : -1;
+  for (var i = 0; i < Math.max(a.tie.length, b.tie.length); i++) {
+    var x = a.tie[i] || 0, y = b.tie[i] || 0;
+    if (x !== y) return x > y ? 1 : -1;
+  }
+  return 0;
+}
+// какие кости оставляет компьютер: возвращает массив true/false (true = перебросить)
+function aiPick(dice) {
+  var e = evaluate(dice);
+  var n = dice.length, re = [];
+  var cnt = [0, 0, 0, 0, 0, 0, 0];
+  dice.forEach(function (v) { cnt[v]++; });
+  var i;
+  if (e.rank >= 4) return dice.map(function () { return false; });
+  if (e.rank === 3) { // тройка: оставляем её, пробуем улучшить
+    var tv = 0; for (i = 1; i <= 6; i++) if (cnt[i] === 3) tv = i;
+    return dice.map(function (v) { return v !== tv; });
+  }
+  if (e.rank === 2) { // две пары: переброс пятой
+    return dice.map(function (v) { return cnt[v] < 2; });
+  }
+  if (e.rank === 1) { // пара: оставляем пару
+    return dice.map(function (v) { return cnt[v] < 2; });
+  }
+  // ничего: смотрим на близость к стриту (4 из 5 нужных)
+  var low = [1, 2, 3, 4, 5], high = [2, 3, 4, 5, 6];
+  function have(set) { var s = {}; dice.forEach(function (v) { if (set.indexOf(v) >= 0) s[v] = 1; }); return Object.keys(s).length; }
+  var best = have(high) >= have(low) ? high : low;
+  if (have(best) >= 4) {
+    var used = {};
+    return dice.map(function (v) { if (best.indexOf(v) >= 0 && !used[v]) { used[v] = 1; return false; } return true; });
+  }
+  // иначе оставляем шестёрки и пятёрки
+  return dice.map(function (v) { return v < 5; });
+}
+if (typeof module !== "undefined") module.exports = { evaluate: evaluate, compare: compare, aiPick: aiPick };
+
+
+var PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+var $ = function (id) { return document.getElementById(id); };
+var S = { you: 100, opp: 100, bet: 10, pot: 0, yd: [], od: [], sel: [], left: 0, phase: "idle", busy: false };
+
+function faceHTML(v) {
+  var h = "";
+  for (var i = 0; i < 9; i++) h += "<i" + (v && PIPS[v].indexOf(i) >= 0 ? ' class="on"' : "") + "></i>";
+  return h;
+}
+function drawDice(el, vals, who) {
+  el.innerHTML = "";
+  for (var i = 0; i < 5; i++) {
+    var d = document.createElement("div");
+    d.className = "die" + (vals[i] ? "" : " empty") + (who === "you" ? " you" : "");
+    if (who === "you" && S.sel[i]) d.className += " pick";
+    d.innerHTML = faceHTML(vals[i]);
+    if (who === "you") d.setAttribute("data-i", i);
+    el.appendChild(d);
+  }
+}
+function ui() {
+  drawDice($("yd"), S.yd, "you");
+  drawDice($("od"), S.od, "opp");
+  $("yc").textContent = S.you; $("oc").textContent = S.opp;
+  $("yh").textContent = S.yd.length ? evaluate(S.yd).name : "";
+  $("oh").textContent = S.od.length ? evaluate(S.od).name : "";
+  var yourTurn = S.phase === "pick" && !S.busy;
+  $("re").disabled = !(yourTurn && S.left > 0 && S.sel.some(Boolean));
+  $("keep").disabled = !yourTurn;
+  $("go").disabled = !(S.phase === "idle" && !S.busy);
+  $("bet").disabled = S.phase !== "idle";
+}
+function msg(t) { $("msg").textContent = t; }
+function roll1() { return 1 + Math.floor(Math.random() * 6); }
+
+// анимированный бросок выбранных костей: idx это список номеров, arr и el это набор костей
+function animate(arr, idx, elId, who, done) {
+  S.busy = true; ui();
+  var el = $(elId), t0 = Date.now();
+  var timer = setInterval(function () {
+    idx.forEach(function (i) { arr[i] = roll1(); });
+    ui();
+    var dice = el.children;
+    idx.forEach(function (i) { if (dice[i]) dice[i].classList.add("roll"); });
+    if (Date.now() - t0 > 650) {
+      clearInterval(timer);
+      idx.forEach(function (i) { arr[i] = roll1(); });
+      S.busy = false; ui(); done();
+    }
+  }, 80);
+}
+
+$("go").onclick = function () {
+  if (S.phase !== "idle" || S.busy) return;
+  var bet = Math.min(parseInt($("bet").value, 10), S.you, S.opp);
+  if (bet <= 0) return;
+  S.bet = bet; S.you -= bet; S.opp -= bet; S.pot = bet * 2;
+  S.yd = [0, 0, 0, 0, 0]; S.od = [0, 0, 0, 0, 0]; S.sel = []; S.left = 2; S.phase = "rolling";
+  msg("Бросок...");
+  animate(S.yd, [0, 1, 2, 3, 4], "yd", "you", function () {
+    animate(S.od, [0, 1, 2, 3, 4], "od", "opp", function () {
+      S.phase = "pick";
+      msg("Ваш ход. Нажмите на кости, которые хотите перебросить (осталось перебросов: " + S.left + "), или оставьте всё как есть.");
+      ui();
+    });
+  });
+};
+
+$("yd").onclick = function (e) {
+  var d = e.target.closest ? e.target.closest(".die") : null;
+  if (!d || S.phase !== "pick" || S.busy || S.left <= 0) return;
+  var i = +d.getAttribute("data-i");
+  S.sel[i] = !S.sel[i];
+  ui();
+};
+
+$("re").onclick = function () {
+  if (S.phase !== "pick" || S.busy || S.left <= 0) return;
+  var idx = [];
+  for (var i = 0; i < 5; i++) if (S.sel[i]) idx.push(i);
+  if (!idx.length) return;
+  S.left--; S.sel = [];
+  animate(S.yd, idx, "yd", "you", function () {
+    if (S.left > 0) msg("Можно перебросить ещё раз (осталось: " + S.left + ") или оставить.");
+    else msg("Перебросов не осталось.");
+    ui();
+  });
+};
+
+$("keep").onclick = function () {
+  if (S.phase !== "pick" || S.busy) return;
+  S.sel = []; S.phase = "ai"; S.left = 0; ui();
+  aiTurn(2);
+};
+
+function aiTurn(left) {
+  var pick = left > 0 ? aiPick(S.od) : [];
+  var idx = [];
+  pick.forEach(function (r, i) { if (r) idx.push(i); });
+  if (!idx.length) { showdown(); return; }
+  msg("Соперник перебрасывает кости: " + idx.length + " шт.");
+  setTimeout(function () {
+    animate(S.od, idx, "od", "opp", function () { setTimeout(function () { aiTurn(left - 1); }, 450); });
+  }, 500);
+}
+
+function showdown() {
+  var a = evaluate(S.yd), b = evaluate(S.od), c = compare(a, b), text;
+  if (c > 0) { S.you += S.pot; text = "Вы победили! " + a.name + " против «" + b.name + "». Вы забираете " + S.pot + " монет."; }
+  else if (c < 0) { S.opp += S.pot; text = "Соперник выиграл: «" + b.name + "» против вашей «" + a.name + "». Вы теряете " + S.bet + " монет."; }
+  else { S.you += S.bet; S.opp += S.bet; text = "Ничья: у обоих «" + a.name + "». Ставки возвращены."; }
+  S.pot = 0; S.phase = "idle";
+  if (S.you <= 0) { text += " У вас не осталось монет. Хозяин таверны выдаёт вам 100 в долг. Играем заново."; S.you = 100; S.opp = 100; }
+  else if (S.opp <= 0) { text += " Соперник остался без монет и ставит на кон новые 100. Играем дальше."; S.opp = 100; }
+  msg(text); ui();
+}
+
+ui();
+</script>
+</body>
+</html>

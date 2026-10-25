@@ -1,13 +1,13 @@
 # yaml-language-server: $schema=./quartz/plugins/quartz-plugins.schema.json
 configuration:
-  pageTitle: Quartz 5
+  pageTitle: Мир Окологорья
   pageTitleSuffix: ""
   enableSPA: true
   enablePopovers: true
   analytics:
     provider: plausible
-  locale: en-US
-  baseUrl: mysite.github.io
+  locale: ru-RU
+  baseUrl: maximrig1234.github.io/age-of-heroes
   ignorePatterns:
     - private
     - templates
@@ -16,30 +16,30 @@ configuration:
     fontOrigin: googleFonts
     cdnCaching: true
     typography:
-      header: Schibsted Grotesk
-      body: Source Sans Pro
+      header: Philosopher
+      body: EB Garamond
       code: IBM Plex Mono
     colors:
       lightMode:
-        light: "#faf8f8"
-        lightgray: "#e5e5e5"
-        gray: "#b8b8b8"
-        darkgray: "#4e4e4e"
-        dark: "#2b2b2b"
-        secondary: "#284b63"
-        tertiary: "#84a59d"
-        highlight: rgba(143, 159, 169, 0.15)
-        textHighlight: "#fff23688"
+        light: "#ecdcb4"
+        lightgray: "#c8b183"
+        gray: "#5c4730"
+        darkgray: "#3d2c1c"
+        dark: "#24170d"
+        secondary: "#7a1f2b"
+        tertiary: "#a8742a"
+        highlight: rgba(122, 31, 43, 0.10)
+        textHighlight: "#e0b84a80"
       darkMode:
-        light: "#161618"
-        lightgray: "#393639"
-        gray: "#646464"
-        darkgray: "#d4d4d4"
-        dark: "#ebebec"
-        secondary: "#7b97aa"
-        tertiary: "#84a59d"
-        highlight: rgba(143, 159, 169, 0.15)
-        textHighlight: "#b3aa0288"
+        light: "#17120e"
+        lightgray: "#3b2f24"
+        gray: "#9a8668"
+        darkgray: "#d9ccb0"
+        dark: "#f3e6c4"
+        secondary: "#d4a950"
+        tertiary: "#e8c878"
+        highlight: rgba(212, 169, 80, 0.14)
+        textHighlight: "#d4a95055"
 plugins:
   - source: "@quartz-community/created-modified-date"
     enabled: true
@@ -82,7 +82,7 @@ plugins:
     order: 50
     layout:
       position: right
-      priority: 30
+      priority: 10
   - source: "@quartz-community/crawl-links"
     enabled: true
     options:
@@ -111,7 +111,7 @@ plugins:
   - source: "@quartz-community/quartz-fonts"
     enabled: true
   - source: "@quartz-themes/core"
-    enabled: true
+    enabled: false
     options:
       theme: its-theme
       variation: ttrpg-dnd
@@ -159,7 +159,7 @@ plugins:
   - source: "@quartz-community/tag-page"
     enabled: true
   - source: "@quartz-community/explorer"
-    enabled: true
+    enabled: false
     layout:
       position: left
       priority: 50
@@ -167,20 +167,17 @@ plugins:
     enabled: true
     layout:
       position: right
-      priority: 10
+      priority: 20
   - source: "@quartz-community/search"
     enabled: true
     layout:
-      position: left
+      position: header
       priority: 20
-      group: toolbar
-      groupOptions:
-        grow: true
   - source: "@quartz-community/backlinks"
     enabled: true
     layout:
       position: right
-      priority: 50
+      priority: 30
   - source: "@quartz-community/article-title"
     enabled: true
     layout:
@@ -199,22 +196,22 @@ plugins:
   - source: "@quartz-community/page-title"
     enabled: true
     layout:
-      position: left
+      position: header
       priority: 10
   - source: "@quartz-community/darkmode"
     enabled: true
     layout:
-      position: left
+      position: header
       priority: 30
-      group: toolbar
   - source: "@quartz-community/reader-mode"
     enabled: true
     layout:
-      position: left
+      position: header
       priority: 35
-      group: toolbar
   - source: "@quartz-community/breadcrumbs"
     enabled: true
+    options:
+      rootName: Главная
     layout:
       position: beforeBody
       priority: 5
@@ -231,8 +228,7 @@ plugins:
     enabled: true
     options:
       links:
-        GitHub: https://github.com/jackyzha0/quartz
-        Discord Community: https://discord.gg/cRFFHYye7t
+        Репозиторий: https://github.com/maximrig1234/near-the-mountain-range-wiki
     layout:
       position: footer
       priority: 50
@@ -290,16 +286,16 @@ layout:
         beforeBody: []
         left: []
         right: []
-    content: {}
+    content:
+      template: okologorye
     folder:
+      template: okologorye
       exclude:
         - reader-mode
-      positions:
-        right: []
     tag:
+      template: okologorye
       exclude:
         - reader-mode
-      positions:
-        right: []
     canvas: {}
-    bases: {}
+    bases:
+      template: okologorye
