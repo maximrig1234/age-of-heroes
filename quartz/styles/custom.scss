@@ -216,6 +216,130 @@ article {
   }
 }
 
+// Картинки: у Quartz по умолчанию content-visibility: auto, из-за чего картинки вне экрана
+// имеют размер 0x0, а инфобокс и текст «прыгают» или показываются криво. Отключаем.
+.page[data-frame="okologorye"] img {
+  content-visibility: visible;
+}
+
+// Obsidian пишет в картинки width="auto" height="auto": приводим к нормальным размерам
+img[width="auto"],
+img[height="auto"] {
+  width: auto;
+  height: auto;
+}
+
+.callout[data-callout="infobox"] img,
+.infobox img {
+  width: 100%;
+  height: auto;
+}
+
+// Горизонтальная линия (---) по умолчанию имеет overflow: hidden, из-за чего она не может
+// стоять рядом с плавающим инфобоксом и «сбрасывает» его: весь текст ниже уезжает под инфобокс.
+.page[data-frame="okologorye"] hr {
+  overflow: visible;
+}
+
+// Инфобокс компактнее: строки таблицы не растягиваются, колонки не сжимаются в столбик
+.callout[data-callout="infobox"],
+.infobox {
+  table {
+    table-layout: fixed;
+    font-size: 0.88rem;
+  }
+
+  td,
+  th {
+    padding: 0.2rem 0.4rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  td:first-child,
+  th:first-child {
+    width: 40%;
+  }
+
+  p {
+    margin: 0.2rem 0;
+  }
+
+  // пустая шапка таблицы (| | |) не нужна
+  thead:not(:has(th:not(:empty))) {
+    display: none;
+  }
+
+  h3,
+  h4 {
+    margin: 0.6rem 0 0.3rem;
+    font-size: 1rem;
+    text-align: center;
+  }
+}
+
+// Широкие таблицы (например, таблицы классов с ячейками заклинаний) начинаются под инфобоксом
+// и занимают всю ширину статьи, а не прячутся в узкой колонке рядом с ним.
+.page[data-frame="okologorye"] .table-container:has(th:nth-child(6)) {
+  clear: right;
+  font-size: 0.86rem;
+
+  th,
+  td {
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+// Карточки классов и предысторий, как на dnd.su: сетка из плиток вместо длинного списка.
+// Включается в заметке строкой cssclasses: [class-grid] и списком, где у каждого пункта первой идёт ссылка.
+.class-grid ul:has(> li > a:first-child) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.8rem;
+  margin: 0.8rem 0 1.4rem;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    position: relative;
+    margin: 0;
+    padding: 0.8rem 1rem 0.9rem;
+    line-height: 1.45;
+    font-size: 0.92rem;
+    background: color-mix(in srgb, var(--light) 70%, var(--lightgray));
+    border: 1px solid var(--panel-edge);
+    border-left: 5px solid #5e1824;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+
+    &::before {
+      display: none;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+    }
+
+    > a {
+      display: block;
+      margin-bottom: 0.15rem;
+      padding: 0;
+      background: none;
+      font-family: var(--headerFont);
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    em {
+      color: var(--gray);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------
 // 5. Мелочи
 // ---------------------------------------------------------------------
@@ -345,34 +469,288 @@ article {
   gap: 6px;
   min-width: 0;
 
-  @media #{$mobile} {
-    flex: 1 1 100%;
-    overflow-x: auto;
+  // верхние кнопки
+  > .okolo-item {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    min-width: max-content;
+
+    > a {
+      flex: 1 1 auto;
+      height: 44px;
+      padding: 0 4px;
+      white-space: nowrap;
+      text-align: center;
+      font: 700 15px/44px var(--headerFont), Georgia, serif;
+      color: #f1e2b0;
+      text-shadow: 0 1px 2px #000;
+      border-style: solid;
+      border-width: 0 24px;
+      border-image: url("static/theme/nav-button.webp") 0 70 fill / 0 24px stretch;
+
+      &:hover {
+        color: #fff6d8;
+        border-image-source: url("static/theme/nav-button-hover.webp");
+      }
+
+      &:active,
+      &.current {
+        color: #fff6d8;
+        border-image-source: url("static/theme/nav-button-active.webp");
+      }
+    }
+  }
+}
+
+// Узкий рабочий стол: кнопки чуть компактнее, чтобы подписи помещались
+@media (min-width: 801px) and (max-width: 1400px) {
+  .okolo-menu > .okolo-item > a {
+    border-width: 0 18px;
+    border-image-width: 0 18px;
+    font-size: 14px;
   }
 
-  a {
-    flex: 1 1 0;
+  .okolo-menu {
+    gap: 4px;
+  }
+
+  .okolo-tools .search {
+    width: 9rem;
+  }
+}
+
+@media (min-width: 801px) and (max-width: 1150px) {
+  .okolo-menu > .okolo-item > a {
+    border-width: 0 13px;
+    border-image-width: 0 13px;
+    font-size: 13px;
+    letter-spacing: -0.2px;
+  }
+
+  .okolo-menu {
+    gap: 2px;
+  }
+
+  .okolo-tools .search {
+    width: 7rem;
+  }
+}
+
+// Выпадающие списки подпапок (только папки, без заметок)
+.okolo-sub {
+  display: none;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 15rem;
+  max-width: 22rem;
+  background: #26231f;
+  border: 2px solid #6b5a3a;
+  border-radius: 4px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+
+  li {
+    position: relative;
+    display: flex;
+    margin: 0;
+    padding: 0;
+
+    > a {
+      flex: 1 1 auto;
+      display: block;
+      padding: 8px 12px;
+      font: 600 15px/1.25 var(--headerFont), Georgia, serif;
+      color: #f1e2b0;
+      text-shadow: none;
+      border-radius: 3px;
+      background: none;
+
+      &:hover {
+        color: #fff6d8;
+        background: rgba(212, 169, 80, 0.2);
+      }
+    }
+
+    &.has-sub > a {
+      padding-right: 26px;
+    }
+  }
+}
+
+.okolo-caret,
+.okolo-burger {
+  display: none;
+}
+
+// Мышь: меню открывается при наведении
+@media (hover: hover) and (min-width: 801px) {
+  .okolo-menu > .okolo-item > .okolo-sub {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 70;
+  }
+
+  .okolo-sub .okolo-sub {
+    position: absolute;
+    top: -6px;
+    left: calc(100% - 2px);
+    z-index: 71;
+  }
+
+  .okolo-item:hover > .okolo-sub,
+  .okolo-item:focus-within > .okolo-sub,
+  .okolo-sub li:hover > .okolo-sub,
+  .okolo-sub li:focus-within > .okolo-sub {
+    display: block;
+  }
+
+  // стрелка у пунктов с вложенными папками
+  .okolo-sub li.has-sub > a::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    margin-top: -4px;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    transform: rotate(45deg);
+  }
+}
+
+// Сенсорные экраны и узкие окна: кнопка-бургер и раскрывающиеся списки
+@media (hover: none), (max-width: 800px) {
+  .okolo-nav {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .okolo-burger {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 46px;
     height: 44px;
-    padding: 0 4px;
-    white-space: nowrap;
-    text-align: center;
-    font: 700 15px/44px var(--headerFont), Georgia, serif;
-    color: #f1e2b0;
-    text-shadow: 0 1px 2px #000;
-    border-style: solid;
-    border-width: 0 24px;
-    border-image: url("static/theme/nav-button.webp") 0 70 fill / 0 24px stretch;
+    padding: 0 11px;
+    cursor: pointer;
+    background: linear-gradient(#27406d, #172a4b);
+    border: 2px solid #d9b45a;
+    border-radius: 6px;
 
-    &:hover {
-      color: #fff6d8;
-      border-image-source: url("static/theme/nav-button-hover.webp");
+    span {
+      display: block;
+      height: 3px;
+      border-radius: 2px;
+      background: #f1e2b0;
+    }
+  }
+
+  .okolo-tools {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    header {
+      justify-content: flex-end;
     }
 
-    &:active,
-    &.current {
-      color: #fff6d8;
-      border-image-source: url("static/theme/nav-button-active.webp");
+    .search {
+      width: auto;
+      min-width: 0;
+      flex: 1 1 auto;
     }
+  }
+
+  .okolo-menu {
+    display: none;
+    order: 3;
+    flex: 1 1 100%;
+    flex-direction: column;
+    gap: 4px;
+    max-height: calc(100vh - 8.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .okolo-nav.menu-open .okolo-menu {
+    display: flex;
+  }
+
+  .okolo-menu > .okolo-item {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: stretch;
+
+    > a {
+      flex: 1 1 0;
+    }
+  }
+
+  .okolo-caret {
+    display: block;
+    flex: 0 0 46px;
+    position: relative;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.28);
+    border: 0;
+    border-radius: 4px;
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 9px;
+      height: 9px;
+      margin: -7px 0 0 -5px;
+      border-right: 2px solid #f1e2b0;
+      border-bottom: 2px solid #f1e2b0;
+      transform: rotate(45deg);
+      transition: transform 0.15s ease;
+    }
+  }
+
+  .okolo-item.open > .okolo-caret::after,
+  .okolo-sub li.open > .okolo-caret::after {
+    margin-top: -2px;
+    transform: rotate(-135deg);
+  }
+
+  .okolo-sub {
+    position: static;
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: none;
+    margin: 4px 0 2px 14px;
+    box-shadow: none;
+  }
+
+  .okolo-sub li {
+    flex-wrap: wrap;
+
+    > a {
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      padding: 6px 12px;
+    }
+
+    > .okolo-caret {
+      flex-basis: 40px;
+    }
+
+    > .okolo-sub {
+      margin-left: 12px;
+    }
+  }
+
+  .okolo-item.open > .okolo-sub,
+  .okolo-sub li.open > .okolo-sub {
+    display: block;
   }
 }
 
@@ -576,8 +954,68 @@ article {
   }
 }
 
+// Кнопка «выключить все звуки» рядом с днём/ночью и режимом чтения
+.okolo-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  > header {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.okolo-mute {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  border: 0;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    fill: #f1e2b0;
+    stroke: #f1e2b0;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .okolo-mute-wave {
+    fill: none;
+  }
+
+  .okolo-mute-slash {
+    display: none;
+    stroke: #ff8a7a;
+    stroke-width: 2.4;
+  }
+
+  &:hover svg {
+    fill: #fff6d8;
+    stroke: #fff6d8;
+  }
+}
+
+:root[data-okolo-muted] .okolo-mute {
+  .okolo-mute-wave {
+    display: none;
+  }
+
+  .okolo-mute-slash {
+    display: block;
+  }
+}
+
 // Пункт меню, для которого в content нет папки
-.okolo-menu a.missing {
+.okolo-menu > .okolo-item > a.missing {
   opacity: 0.55;
 }
 
@@ -851,6 +1289,14 @@ article {
   padding: 0;
   border-radius: 56px;
   animation: okolo-pulse 2.2s ease-in-out infinite;
+}
+
+// Телефон: плеер не заезжает на кнопку с кубиками
+@media #{$mobile} {
+  :root:not([data-okolo-state="intro"]) .okolo-player {
+    width: calc(100% - 92px);
+    max-width: 340px;
+  }
 }
 
 @keyframes okolo-pulse {

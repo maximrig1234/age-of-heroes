@@ -100,6 +100,79 @@ const SLIDE_CSS = `@keyframes okolo-slide{0%{opacity:0}${fadePct.toFixed(2)}%{op
 // Quartz пишет адреса папок строчными буквами и с дефисами вместо пробелов
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "-")
 
+// Дерево подпапок для выпадающего меню: только папки, в которых (на любой глубине) есть заметки.
+// label это настоящее имя папки из Obsidian, path это адрес папки на сайте.
+type MenuNode = { label: string; path: string; children: Map<string, MenuNode> }
+
+// Сколько уровней папок показывать в выпадающем меню (глубже папки открываются со страницы раздела)
+const MENU_DEPTH = 2
+// Папки, которые не нужно показывать в меню (регистр и пробелы не важны)
+const MENU_HIDE = ["Краткие сокращения", "Image", "Изображения", "File", "Templates"]
+const HIDE_SET = new Set(MENU_HIDE.map((x) => x.trim().toLowerCase().replace(/\s+/g, "-")))
+
+function buildMenuTree(allFiles: any[], top: string): Map<string, MenuNode> {
+  const root = new Map<string, MenuNode>()
+  for (const f of allFiles) {
+    if (!f.slug || !f.relativePath) continue
+    const rel = String(f.relativePath).split("/")
+    const dirs = rel.slice(0, -1)
+    if (dirs.length < 2 || normalize(dirs[0]) !== top) continue
+    const slugSegs = String(f.slug).split("/")
+    let level = root
+    for (let i = 1; i < dirs.length && i <= MENU_DEPTH; i++) {
+      const slugKey = slugSegs[i] ?? normalize(dirs[i])
+      if (HIDE_SET.has(normalize(dirs[i])) || HIDE_SET.has(slugKey)) break
+      let node = level.get(slugKey)
+      if (!node) {
+        node = { label: dirs[i], path: slugSegs.slice(0, i + 1).join("/"), children: new Map() }
+        level.set(slugKey, node)
+      } else if (node.label === slugKey && dirs[i] !== slugKey) {
+        // настоящее имя папки лучше, чем адрес в нижнем регистре
+        node.label = dirs[i]
+      }
+      level = node.children
+    }
+  }
+  return root
+}
+
+const sortNodes = (m: Map<string, MenuNode>) =>
+  [...m.values()].sort((a, b) => a.label.localeCompare(b.label, "ru"))
+
+const MENU_SCRIPT = `(function () {
+  if (window.__okoloMenu) return;
+  window.__okoloMenu = true;
+  function closeAll() {
+    document.querySelectorAll(".okolo-nav .open").forEach(function (el) { el.classList.remove("open"); });
+    var nav = document.querySelector(".okolo-nav");
+    if (nav) nav.classList.remove("menu-open");
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var caret = t.closest(".okolo-caret");
+    if (caret) {
+      e.preventDefault();
+      var li = caret.parentElement;
+      var willOpen = !li.classList.contains("open");
+      if (li.parentElement) {
+        Array.prototype.forEach.call(li.parentElement.children, function (sib) { sib.classList.remove("open"); });
+      }
+      if (willOpen) li.classList.add("open");
+      return;
+    }
+    if (t.closest(".okolo-burger")) {
+      var nav = t.closest(".okolo-nav");
+      nav.classList.toggle("menu-open");
+      return;
+    }
+    if (!t.closest(".okolo-menu")) closeAll();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeAll(); });
+  document.addEventListener("nav", closeAll);
+})();
+`
+
 // Самый первый скрипт: до отрисовки страницы выбирает, показывать ли большую кнопку Play
 const EARLY_SCRIPT = `try{var s=JSON.parse(localStorage.getItem("okolo-music")||"{}");document.documentElement.setAttribute("data-okolo-state",s.started?"mini":"intro")}catch(e){document.documentElement.setAttribute("data-okolo-state","intro")}`
 
@@ -123,6 +196,29 @@ const PLAYER_SCRIPT = `(function () {
   audio.preload = "none";
   audio.loop = true;
   audio.volume = vol;
+  var muted = !!st.muted;
+  if (muted) root.setAttribute("data-okolo-muted", "1");
+
+  // полное выключение звуков: фоновая музыка, звук нажатия и звук на самой странице
+  function muteMedia() {
+    document.querySelectorAll("audio, video").forEach(function (m) { if (m !== audio) m.muted = muted; });
+  }
+  function setMuted(m) {
+    muted = m;
+    st.muted = m;
+    if (m) {
+      st.resume = on;
+      root.setAttribute("data-okolo-muted", "1");
+      if (on) pause();
+    } else {
+      root.removeAttribute("data-okolo-muted");
+      var again = st.resume && root.getAttribute("data-okolo-state") !== "intro";
+      st.resume = false;
+      if (again) play();
+    }
+    muteMedia();
+    save();
+  }
 
   function theme() { return root.getAttribute("saved-theme") === "dark" ? "dark" : "light"; }
   function url(f) { return base + "/static/music/" + encodeURIComponent(f); }
@@ -216,7 +312,9 @@ const PLAYER_SCRIPT = `(function () {
     var t = e.target;
     if (!t || !t.closest) return;
     if (t.closest("[data-okolo-skip]")) { start(false); return; }
+    if (t.closest("[data-okolo-mute]")) { setMuted(!muted); return; }
     if (t.closest("[data-okolo-toggle]")) {
+      if (muted) { st.resume = false; setMuted(false); }
       if (root.getAttribute("data-okolo-state") === "intro") { start(true); return; }
       if (on) pause(); else play();
       return;
@@ -239,6 +337,7 @@ const PLAYER_SCRIPT = `(function () {
   // если на странице включили другой звук или видео, фоновая музыка замолкает
   document.addEventListener("play", function (e) {
     var m = e.target;
+    if (muted && m && m !== audio && m.tagName && /^(AUDIO|VIDEO)$/.test(m.tagName)) m.muted = true;
     if (on && m && m !== audio && m.tagName && /^(AUDIO|VIDEO)$/.test(m.tagName)) pause();
   }, true);
   audio.addEventListener("pause", function () {
@@ -254,7 +353,7 @@ const PLAYER_SCRIPT = `(function () {
   var lastClick = 0;
   document.addEventListener("click", function () {
     var now = Date.now();
-    if (now - lastClick < 40 || vol <= 0) return;
+    if (now - lastClick < 40 || vol <= 0 || muted) return;
     lastClick = now;
     var a = clickBase.cloneNode();
     a.volume = 0.7;
@@ -262,13 +361,14 @@ const PLAYER_SCRIPT = `(function () {
     if (p && p.catch) p.catch(function () {});
   }, true);
 
-  document.addEventListener("nav", refresh);
+  document.addEventListener("nav", function () { refresh(); muteMedia(); });
   window.addEventListener("pagehide", save);
   window.__okoloPlayer = audio;
   load(theme());
   setState(st.started ? "mini" : "intro");
   refresh();
-  if (st.started && st.on) {
+  muteMedia();
+  if (st.started && st.on && !muted) {
     var p0 = play();
     if (p0 && p0.catch) {
       p0.catch(function () {
@@ -371,6 +471,11 @@ export const OkologorFrame: PageFrame = {
           </a>
         </div>
         <nav class="okolo-nav">
+          <button class="okolo-burger" type="button" aria-label="Меню сайта">
+            <span />
+            <span />
+            <span />
+          </button>
           <div class="okolo-menu">
             {MENU.map((item) => {
               const seg = normalize(item.folder)
@@ -378,14 +483,37 @@ export const OkologorFrame: PageFrame = {
               const current = slug === seg || slug.startsWith(seg + "/")
               const href = resolveRelative(slug, `${seg}/index` as FullSlug)
               const cls = [current ? "current" : "", exists ? "" : "missing"].join(" ").trim()
+              const subs = sortNodes(buildMenuTree(allFiles, seg))
+              const renderNodes = (nodes: MenuNode[]) => (
+                <ul class="okolo-sub">
+                  {nodes.map((n) => {
+                    const kids = sortNodes(n.children)
+                    return (
+                      <li class={kids.length ? "has-sub" : ""}>
+                        <a href={resolveRelative(slug, `${n.path}/index` as FullSlug)}>{n.label}</a>
+                        {kids.length > 0 && (
+                          <button class="okolo-caret" type="button" aria-label="Показать подразделы" />
+                        )}
+                        {kids.length > 0 && renderNodes(kids)}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )
               return (
-                <a
-                  href={href}
-                  class={cls}
-                  title={exists ? undefined : `Папка «${item.folder}» не найдена в content`}
-                >
-                  {item.label}
-                </a>
+                <div class={subs.length ? "okolo-item has-sub" : "okolo-item"}>
+                  <a
+                    href={href}
+                    class={cls}
+                    title={exists ? undefined : `Папка «${item.folder}» не найдена в content`}
+                  >
+                    {item.label}
+                  </a>
+                  {subs.length > 0 && (
+                    <button class="okolo-caret" type="button" aria-label="Показать подразделы" />
+                  )}
+                  {subs.length > 0 && renderNodes(subs)}
+                </div>
               )
             })}
           </div>
@@ -395,8 +523,22 @@ export const OkologorFrame: PageFrame = {
                 <HeaderComponent {...componentData} />
               ))}
             </Header>
+            <button
+              class="okolo-mute"
+              type="button"
+              data-okolo-mute
+              title="Выключить все звуки"
+              aria-label="Выключить или включить все звуки"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z" />
+                <path class="okolo-mute-wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+                <path class="okolo-mute-slash" d="M4 4l16 16" />
+              </svg>
+            </button>
           </div>
         </nav>
+        <script dangerouslySetInnerHTML={{ __html: MENU_SCRIPT }} />
         <div class="okolo-cols">
           <div class="center">
             <div class="page-header">
