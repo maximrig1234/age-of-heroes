@@ -872,6 +872,65 @@ img[height="auto"] {
   }
 }
 
+// Свёрнутое оглавление действительно прячет список
+.okolo-cols .sidebar .toc:has(.toc-header.collapsed) {
+  padding-top: 3.4rem;
+  padding-bottom: 3.4rem;
+
+  .toc-content {
+    display: none;
+  }
+}
+
+.okolo-cols .sidebar .toc .toc-header {
+  cursor: pointer;
+}
+
+// На телефонах оглавление идёт перед статьёй, остальные блоки правой колонки после неё
+@media (max-width: 1199px) {
+  .okolo-cols {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .okolo-cols .sidebar.right {
+    display: contents;
+  }
+
+  .okolo-cols {
+    align-items: stretch;
+  }
+
+  .okolo-cols .sidebar.right > *,
+  .okolo-cols .center {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .okolo-cols .sidebar.right > .toc {
+    order: 0;
+  }
+
+  .okolo-cols .center {
+    order: 1;
+  }
+
+  .okolo-cols .sidebar.right > :not(.toc) {
+    order: 2;
+    margin-top: 1.2rem;
+  }
+
+  .okolo-cols .sidebar.left {
+    order: 3;
+  }
+}
+
+// Подпись к графу: что это такое
+.okolo-cols .sidebar .graph > h3::after {
+  content: " связей";
+}
+
 // Граф, обратные ссылки и прочие блоки: каменная рамка с золотом
 .okolo-cols .sidebar .graph,
 .okolo-cols .sidebar .backlinks,
@@ -1774,9 +1833,11 @@ img[height="auto"] {
   background: #1a1208;
   overflow: hidden;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  touch-action: pan-y;
+  user-select: none;
 
-  &:hover .okolo-slide {
-    animation-play-state: paused;
+  @media #{$mobile} {
+    aspect-ratio: 4 / 3;
   }
 }
 
@@ -1785,6 +1846,14 @@ img[height="auto"] {
   inset: 0;
   margin: 0;
   opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+
+  &.active {
+    z-index: 1;
+    opacity: 1;
+    pointer-events: auto;
+  }
 
   img {
     display: block;
@@ -1792,6 +1861,7 @@ img[height="auto"] {
     height: 100%;
     margin: 0;
     object-fit: contain;
+    cursor: zoom-in;
   }
 
   figcaption {
@@ -1799,20 +1869,151 @@ img[height="auto"] {
     left: 0;
     right: 0;
     bottom: 0;
-    padding: 1.4rem 1rem 0.7rem;
+    padding: 1.4rem 3.4rem 0.7rem;
     background: linear-gradient(transparent, rgba(0, 0, 0, 0.78));
     color: #f1e2b0;
     font-size: 0.95rem;
     text-align: center;
+    pointer-events: none;
+
+    @media #{$mobile} {
+      padding: 1rem 2.6rem 0.5rem;
+      font-size: 0.8rem;
+    }
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .okolo-slide {
-    animation: none;
+.okolo-slider-btn,
+.okolo-slider-full {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  color: #f1e2b0;
+  background: rgba(20, 16, 10, 0.62);
+  border: 1px solid #d9b45a;
+  border-radius: 50%;
+  line-height: 1;
+
+  &:hover {
+    background: rgba(94, 24, 36, 0.85);
+    color: #fff6d8;
   }
-  .okolo-slide:first-child {
-    opacity: 1;
+}
+
+.okolo-slider-btn {
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+  font-size: 1.8rem;
+
+  &.prev {
+    left: 8px;
+  }
+
+  &.next {
+    right: 8px;
+  }
+}
+
+.okolo-slider-full {
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+}
+
+.okolo-slider-count {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(20, 16, 10, 0.62);
+  color: #f1e2b0;
+  font-size: 0.8rem;
+}
+
+// Просмотр рисунка на весь экран
+.okolo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 6, 3, 0.94);
+
+  &.open {
+    display: flex;
+  }
+
+  img {
+    max-width: 94vw;
+    max-height: 84vh;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  }
+
+  button {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    color: #f1e2b0;
+    background: rgba(20, 16, 10, 0.7);
+    border: 1px solid #d9b45a;
+    border-radius: 50%;
+    line-height: 1;
+
+    &:hover {
+      background: rgba(94, 24, 36, 0.9);
+    }
+  }
+
+  .okolo-lb-close {
+    top: 14px;
+    right: 14px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.8rem;
+  }
+
+  .okolo-lb-prev,
+  .okolo-lb-next {
+    top: 50%;
+    width: 48px;
+    height: 48px;
+    margin-top: -24px;
+    font-size: 2rem;
+  }
+
+  .okolo-lb-prev {
+    left: 12px;
+  }
+
+  .okolo-lb-next {
+    right: 12px;
+  }
+
+  .okolo-lb-cap {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 14px;
+    padding: 0 3.5rem;
+    color: #f1e2b0;
+    font-size: 0.95rem;
+    text-align: center;
   }
 }
 

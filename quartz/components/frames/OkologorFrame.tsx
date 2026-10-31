@@ -80,9 +80,16 @@ const DICE_PATH: Record<number, string> = {
 
 // Слайд-шоу на титульной странице (только на главной). Картинки лежат в quartz/static/slides/.
 // Чтобы добавить слайд, положите файл в эту папку и допишите строку сюда.
-const SLIDE_SECONDS = 6
+const SLIDE_SECONDS = 7
 const SLIDES = [
   { file: "map-okologorye.webp", caption: "Карта Окологорья и западной части материка. Рисовалась с детства" },
+  { file: "map-okologorye-detail.webp", caption: "Карта Окологорья и запада материка: Анмор, Грифон Харт, Недовелир" },
+  { file: "map-aragorn.webp", caption: "Карта: Арагорн и окрестности" },
+  { file: "map-griffin-south.webp", caption: "Карта юга королевства Грифон Харт (в работе)" },
+  { file: "map-durimar.webp", caption: "Карта: подземелье Дуримар и нагорье Арати" },
+  { file: "map-gludio-road.webp", caption: "Карта: дорога к Глудио" },
+  { file: "map-dream-water.webp", caption: "План города Дрим Оутер" },
+  { file: "north-map.webp", caption: "Север королевства Грифон Харт" },
   { file: "orc.webp", caption: "Орк. Набросок к стратегии в духе Age of Heroes 3" },
   { file: "orcs.webp", caption: "Орки: ещё наброски" },
   { file: "necromancers.webp", caption: "Некроманты из Анмора" },
@@ -91,11 +98,19 @@ const SLIDES = [
   { file: "forest-elf.webp", caption: "Так я представлял лесных эльфов" },
   { file: "avair.webp", caption: "Хранитель мудрости Аваир. Ранний образ" },
   { file: "elf-architecture.webp", caption: "Архитектура эльфов в ранних представлениях о мире" },
-  { file: "north-map.webp", caption: "Север королевства Грифон Харт" },
+  { file: "sketch-wanderer.webp", caption: "Набросок: странник в плаще" },
+  { file: "sketch-vseblag.webp", caption: "Всеблаг" },
+  { file: "sketch-gustavson.webp", caption: "Густавсон" },
+  { file: "sketch-lex.webp", caption: "Лекс" },
+  { file: "sketch-hekate.webp", caption: "Геката" },
+  { file: "sketch-elf.webp", caption: "Набросок: эльф" },
+  { file: "sketch-bearded.webp", caption: "Набросок: бородатый воин" },
+  { file: "sketch-viking.webp", caption: "Набросок: воин с косой" },
+  { file: "sketch-blue-eyes.webp", caption: "Набросок: лицо героя" },
+  { file: "sketch-highlander.webp", caption: "Набросок: воин у гор" },
+  { file: "sketch-wolf.webp", caption: "Набросок: воин в волчьей шкуре" },
 ]
-const slotPct = 100 / SLIDES.length
-const fadePct = slotPct * 0.12
-const SLIDE_CSS = `@keyframes okolo-slide{0%{opacity:0}${fadePct.toFixed(2)}%{opacity:1}${slotPct.toFixed(2)}%{opacity:1}${(slotPct + fadePct).toFixed(2)}%{opacity:0}100%{opacity:0}}.okolo-slide{animation:okolo-slide ${SLIDES.length * SLIDE_SECONDS}s linear infinite;animation-delay:calc(var(--i) * ${SLIDE_SECONDS}s)}`
+const SLIDE_CSS = ""
 
 // Quartz пишет адреса папок строчными буквами и с дефисами вместо пробелов
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "-")
@@ -539,6 +554,7 @@ export const OkologorFrame: PageFrame = {
           </div>
         </nav>
         <script dangerouslySetInnerHTML={{ __html: MENU_SCRIPT }} />
+        <script src={`${root}static/okolo-extra.js`} />
         <div class="okolo-cols">
           <div class="center">
             <div class="page-header">
@@ -549,19 +565,35 @@ export const OkologorFrame: PageFrame = {
               </div>
             </div>
             {slug === "index" && (
-              <div class="okolo-slides" aria-label="Рисунки автора">
+              <div
+                class="okolo-slides"
+                aria-label="Рисунки автора"
+                data-okolo-slider
+                data-okolo-delay={String(SLIDE_SECONDS * 1000)}
+              >
                 {SLIDES.map((sl, i) => (
-                  <figure class="okolo-slide" style={`--i:${i}`}>
-                    <img
-                      src={`${root}static/slides/${sl.file}`}
-                      alt={sl.caption}
-                      loading={i === 0 ? "eager" : "lazy"}
-                    />
+                  <figure class={i === 0 ? "okolo-slide active" : "okolo-slide"}>
+                    {i === 0 ? (
+                      <img src={`${root}static/slides/${sl.file}`} alt={sl.caption} />
+                    ) : (
+                      <img data-src={`${root}static/slides/${sl.file}`} alt={sl.caption} />
+                    )}
                     <figcaption>{sl.caption}</figcaption>
                   </figure>
                 ))}
+                <button class="okolo-slider-btn prev" type="button" data-okolo-prev aria-label="Назад">
+                  ‹
+                </button>
+                <button class="okolo-slider-btn next" type="button" data-okolo-next aria-label="Вперёд">
+                  ›
+                </button>
+                <button class="okolo-slider-full" type="button" data-okolo-full aria-label="На весь экран">
+                  ⛶
+                </button>
+                <span class="okolo-slider-count" data-okolo-count />
               </div>
             )}
+            {slug === "index" && <script src={`${root}static/slider.js`} />}
             <Content {...componentData} />
             <hr />
             <div class="page-footer">
